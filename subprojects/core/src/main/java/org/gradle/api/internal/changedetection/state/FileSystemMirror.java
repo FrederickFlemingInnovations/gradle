@@ -17,6 +17,7 @@
 package org.gradle.api.internal.changedetection.state;
 
 import net.rubygrapefruit.platform.ThreadSafe;
+import org.gradle.api.tasks.util.PatternSet;
 
 import javax.annotation.Nullable;
 
@@ -38,7 +39,7 @@ public interface FileSystemMirror {
     void putContent(String path, Snapshot snapshot);
 
     @Nullable
-    FileTreeSnapshot getDirectoryTree(String path);
+    FileTreeSnapshot getDirectoryTree(String path, PatternSet patternSet);
 
-    void putDirectory(FileTreeSnapshot directory);
+    void putDirectory(FileTreeSnapshot directory, PatternSet patternSet);
 }

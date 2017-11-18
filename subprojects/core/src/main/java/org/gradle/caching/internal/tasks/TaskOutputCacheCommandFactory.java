@@ -179,7 +179,7 @@ public class TaskOutputCacheCommandFactory {
                         break;
                     case DIRECTORY:
                         Collection<FileSnapshot> descendants = Collections2.filter(fileSnapshots, EXCLUDE_ROOT_SNAPSHOTS);
-                        fileSystemMirror.putDirectory(new DirectoryTreeDetails(internedAbsolutePath(outputFile), descendants));
+                        fileSystemMirror.putDirectory(new DirectoryTreeDetails(internedAbsolutePath(outputFile), descendants), null);
                         break;
                     default:
                         throw new AssertionError();

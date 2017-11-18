@@ -17,6 +17,7 @@
 package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.api.internal.tasks.execution.TaskOutputsGenerationListener;
+import org.gradle.api.tasks.util.PatternSet;
 import org.gradle.initialization.RootBuildLifecycleListener;
 import org.gradle.internal.classpath.CachedJarFileStore;
 import org.gradle.internal.file.DefaultFileHierarchySet;
@@ -36,7 +37,7 @@ public class DefaultFileSystemMirror implements FileSystemMirror, TaskOutputsGen
     private final Map<String, FileSnapshot> files = new ConcurrentHashMap<String, FileSnapshot>();
     private final Map<String, FileSnapshot> cacheFiles = new ConcurrentHashMap<String, FileSnapshot>();
     // Maps from interned absolute path for a directory to known details for the directory.
-    private final Map<String, FileTreeSnapshot> trees = new ConcurrentHashMap<String, FileTreeSnapshot>();
+    private final Map<TreeKey, FileTreeSnapshot> trees = new ConcurrentHashMap<TreeKey, FileTreeSnapshot>();
     private final Map<String, FileTreeSnapshot> cacheTrees = new ConcurrentHashMap<String, FileTreeSnapshot>();
     // Maps from interned absolute path to a snapshot
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<String, Snapshot>();
@@ -95,22 +96,22 @@ public class DefaultFileSystemMirror implements FileSystemMirror, TaskOutputsGen
 
     @Nullable
     @Override
-    public FileTreeSnapshot getDirectoryTree(String path) {
+    public FileTreeSnapshot getDirectoryTree(String path, PatternSet patternSet) {
         // Could potentially also look whether we have the details for an ancestor directory tree
         // Could possibly also short-circuit some scanning if we have details for some sub trees
         if (cachedDirectories.contains(path)) {
             return cacheTrees.get(path);
         } else {
-            return trees.get(path);
+            return trees.get(new TreeKey(path, patternSet));
         }
     }
 
     @Override
-    public void putDirectory(FileTreeSnapshot directory) {
+    public void putDirectory(FileTreeSnapshot directory, PatternSet patternSet) {
         if (cachedDirectories.contains(directory.getPath())) {
             cacheTrees.put(directory.getPath(), directory);
         } else {
-            trees.put(directory.getPath(), directory);
+            trees.put(new TreeKey(directory.getPath(), patternSet), directory);
         }
     }
 
@@ -136,5 +137,40 @@ public class DefaultFileSystemMirror implements FileSystemMirror, TaskOutputsGen
         cacheTrees.clear();
         snapshots.clear();
         cacheSnapshots.clear();
+    }
+
+    private static class TreeKey {
+        private final String root;
+        private final PatternSet patterns;
+
+
+        private TreeKey(String root, PatternSet patterns) {
+            this.root = root;
+            this.patterns = patterns;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            TreeKey treeKey = (TreeKey) o;
+
+            if (!root.equals(treeKey.root)) {
+                return false;
+            }
+            return patterns != null ? patterns.equals(treeKey.patterns) : treeKey.patterns == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = root.hashCode();
+            result = 31 * result + (patterns != null ? patterns.hashCode() : 0);
+            return result;
+        }
     }
 }

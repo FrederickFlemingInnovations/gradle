@@ -117,11 +117,11 @@ public class DefaultFileSystemSnapshotter implements FileSystemSnapshotter {
         return producingTrees.guardByKey(path, new Factory<FileTreeSnapshot>() {
             @Override
             public FileTreeSnapshot create() {
-                FileTreeSnapshot snapshot = fileSystemMirror.getDirectoryTree(path);
+                FileTreeSnapshot snapshot = fileSystemMirror.getDirectoryTree(path, null);
                 if (snapshot == null) {
                     // Scan the directory
                     snapshot = doSnapshot(directoryFileTreeFactory.create(dir));
-                    fileSystemMirror.putDirectory(snapshot);
+                    fileSystemMirror.putDirectory(snapshot, null);
                 }
                 return snapshot;
             }
@@ -131,22 +131,16 @@ public class DefaultFileSystemSnapshotter implements FileSystemSnapshotter {
     @Override
     public FileTreeSnapshot snapshotDirectoryTree(final DirectoryFileTree dirTree) {
         // Could potentially coordinate with a thread that is snapshotting an overlapping directory tree
-        // Currently cache only those trees where we want everything from a directory
-        if (!dirTree.getPatterns().isEmpty()) {
-            List<FileSnapshot> elements = Lists.newArrayList();
-            dirTree.visit(new FileVisitorImpl(elements));
-            return new DirectoryTreeDetails(dirTree.getDir().getAbsolutePath(), elements);
-        }
-
         final String path = dirTree.getDir().getAbsolutePath();
         return producingTrees.guardByKey(path, new Factory<FileTreeSnapshot>() {
             @Override
             public FileTreeSnapshot create() {
-                FileTreeSnapshot snapshot = fileSystemMirror.getDirectoryTree(path);
+                FileTreeSnapshot snapshot = fileSystemMirror.getDirectoryTree(path, dirTree.getPatterns());
+
                 if (snapshot == null) {
                     // Scan the directory
                     snapshot = doSnapshot(dirTree);
-                    fileSystemMirror.putDirectory(snapshot);
+                    fileSystemMirror.putDirectory(snapshot, dirTree.getPatterns());
                 }
                 return snapshot;
             }

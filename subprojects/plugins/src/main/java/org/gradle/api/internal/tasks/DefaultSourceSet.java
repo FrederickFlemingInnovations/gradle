@@ -27,6 +27,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetOutput;
+import org.gradle.api.tasks.util.PatternSet;
 import org.gradle.util.GUtil;
 
 import static org.gradle.util.ConfigureUtil.configure;
@@ -61,16 +62,44 @@ public class DefaultSourceSet implements SourceSet {
 
         String resourcesDisplayName = displayName + " resources";
         resources = sourceDirectorySetFactory.create(resourcesDisplayName);
-        resources.getFilter().exclude(new Spec<FileTreeElement>() {
-            public boolean isSatisfiedBy(FileTreeElement element) {
-                return javaSource.contains(element.getFile());
-            }
-        });
+        resources.getFilter().exclude(new ResourceExcludeSpec((PatternSet) javaSource.getFilter()));
 
         String allSourceDisplayName = displayName + " source";
         allSource = sourceDirectorySetFactory.create(allSourceDisplayName);
         allSource.source(resources);
         allSource.source(javaSource);
+    }
+
+    private static class ResourceExcludeSpec implements Spec<FileTreeElement> {
+
+        private final PatternSet not;
+
+        private ResourceExcludeSpec(PatternSet not) {
+            this.not = not;
+        }
+
+        public boolean isSatisfiedBy(FileTreeElement element) {
+            return not.getAsSpec().isSatisfiedBy(element);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            ResourceExcludeSpec that = (ResourceExcludeSpec) o;
+
+            return not.equals(that.not);
+        }
+
+        @Override
+        public int hashCode() {
+            return not.hashCode();
+        }
     }
 
     public String getName() {
